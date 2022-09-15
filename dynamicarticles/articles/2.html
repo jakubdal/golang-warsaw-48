@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>daliga.pl</title>
+    </head>
+    <body>
+        <div id="container">
+            <div id="header">
+                <a href="/"><span id="author">Kuba Daliga</span></a>
+            </div>
+            <div id="content">
+                <h1>Serving static files</h1>
+                <h2>What is this and why should I care?</h2>
+                <p>
+                    Serving static files is the most basic operation required for what most people understand as "internet" to work. This is because, at it's core, all websites are a single HTML file. This HTML file can link to other files, which may add interactivity or change the visual style of the page. But what your browser does for each request is nothing more than requesting for a single file.
+                </p>
+                <p>
+                    You can see this request in your browser. For Chrome it's right click on any website, click "Inspect". Select "Network" tab. Load another website (for example: google.com, facebook.com, kwestiasmaku.com). The request at the top is the first one. It is an HTML file, which probably has many "script" and "link" directives. You can check that the same happens on this page (except the code is readable here and there are not many external files linked).
+                </p>
+                
+                <h2>I can just use <a href="https://www.npmjs.com/package/static-server">nodejs static-server</a>, why bother?</h2>
+                <p>
+                    Yes, if you have a purpose other than learning software engineering, that is an ok thing to do. However, if you want to become a software engineer, you will write thousands of those or similar solutions in your life anyways, so if you haven't yet, why not give it a go? It is also important, that you know what to do when there is no third-party package available. You want to be the package developer, not package user.
+                </p>
+                <p>
+                    If I did not convince you, here is <a href="https://medium.com/swlh/need-a-local-static-server-here-are-several-options-bbbe77e59a11">an article on Medium</a> which was the 4th result of my Google search, so apparently it's quite popular, comparing various ways to serve staticfiles. Use the one that fits your usecase.
+                </p>
+                
+                <h2>Here starts the actual tutorial</h2>
+                <p>
+                    To being, I usually create a <code>main.go</code> file that prints <samp class="stdout">Hello, World!</samp>, just to make sure my computer didn't go crazy overnight.
+                </p>
+                <code><pre>
+                package main
+                
+                import "fmt"
+                
+                func main() {
+                    fmt.Println("Hello, World!")
+                }
+                </pre></code>
+                <p>
+                    Next up, we need to check how to create an http server. I suggest a <a href="https://www.google.com/search?q=golang+http+server&oq=golang+http+server&aqs=chrome.0.0i512j0i20i263i512j0i512l8.4012j0j7&sourceid=chrome&ie=UTF-8">"golang http server" google search</a> which in my situation results in the following results (to which I've added my opinion about the article in question):
+                </p>
+                <ul>
+                    <li>
+                        <a href="https://www.digitalocean.com/community/tutorials/how-to-make-an-http-server-in-go">How To Make an HTTP Server in Go</a> - very good, beginner-friendly tutorial. Contains all of the information needed to reproduce my steps slower. Recommended for beginners.
+                    </li>
+                    <li>
+                        <a href="https://gobyexample.com/http-servers">Go by Example: HTTP Servers</a> - short, to the point, more or less what I am going to build anyways. Good explanations for what is done and why.
+                    </li>
+                    <li>
+                        <a href="https://pkg.go.dev/net/http">net/http documentation</a> - standard library documentation. This is what I would use most often, because the standard library documentation is well written. It also comes straight from the code author, which means I am not susceptible to third-person bias that a tutorial author might introduce.
+                    </li>
+                </ul>
+                <p>
+                    No matter which article you use, you should end up with more or less this code:
+                </p>
+                
+                <code><pre>
+                package main
+                
+                import (
+                    "fmt"
+                    "net/http"
+                )
+                
+                func main() {
+                    http.HandleFunc("/hello", hello)
+                    err := http.ListenAndServe(":8080", nil)
+                    if err != nil {
+                        panic(err)
+                    }
+                }
+                
+                func hello(w http.ResponseWriter, req *http.Request) {
+                    _, err := w.Write([]byte("Hello, World!"))
+                    if err != nil {
+                        fmt.Printf("w.Write: %v", err)
+                    }
+                }                   
+                </pre></code>
+                
+                <p>
+                    Which shows <samp class="browser">Hello, World!</samp> in browser after you go to <a href="localhost:8080">localhost:8080</a>, yay!
+                </p>
+                
+                <p>
+                    So, step by step, we call <code>HandleFunc</code> from <code>http</code> package. If you check the documentation (you can also most likely do this from your editor, is VSCode you only have to hover your cursor over the function name if you have go support installed TODO - TUTORIAL HOW).
+                </p>
+                <blockquote cite="https://pkg.go.dev/net/http#HandleFunc"><code><pre>
+                // HandleFunc registers the handler function for the given pattern
+                // in the DefaultServeMux.
+                // The documentation for ServeMux explains how patterns are matched.
+                func HandleFunc(pattern string, handler func(ResponseWriter, *Request)) {
+                    DefaultServeMux.HandleFunc(pattern, handler)
+                }
+                </pre></code></blockquote>
+                
+                <p>
+                    Looking at the documentation of <code>DefaultServeMux</code>, you can read in detail how the handler is picked. For now, you can trust me that <code>hello</code> matches <code>hello</code> URL path and we can move forward.
+                </p>
+                <p>
+                    Next up is <code>http.ListenAndServe</code>. Again we look into the documentation:
+                </p>
+                <blockquote cite="https://pkg.go.dev/net/http#ListenAndServe"><code><pre>
+                    // ListenAndServe listens on the TCP network address addr and then calls
+                    // Serve with handler to handle requests on incoming connections.
+                    // Accepted connections are configured to enable TCP keep-alives.
+                    //
+                    // The handler is typically nil, in which case the DefaultServeMux is used.
+                    //
+                    // ListenAndServe always returns a non-nil error.
+                    func ListenAndServe(addr string, handler Handler) error {
+                </pre></code></blockquote>
+                
+                <p>
+                    What you need to understand from the comment: <code>ListenAndServe</code> is the function that listens for requests and calls our handler function to write a response.
+                </p>
+                
+                <h2>The Handler</h2>
+                <p>
+                    Finally, we get to our Handler implementation.
+                </p>
+                <blockquote><pre>
+                func hello(w http.ResponseWriter, req *http.Request) {
+                    _, err := w.Write([]byte("Hello, World!"))
+                    if err != nil {
+                        fmt.Printf("w.Write: %v", err)
+                    }
+                }    
+                </pre></blockquote>
+                <p>
+                    If the function signature looks random, notice that it's the exact same signature that <code>http.HandleFunc</code> expects:
+                </p>
+                <blockquote cite="https://pkg.go.dev/net/http#HandleFunc"><code><pre>
+                // HandleFunc registers the handler function for the given pattern
+                // in the DefaultServeMux.
+                // The documentation for ServeMux explains how patterns are matched.
+                func HandleFunc(pattern string, handler func(ResponseWriter, *Request)) {
+                    DefaultServeMux.HandleFunc(pattern, handler)
+                }
+                </pre></code></blockquote>
+                <p>
+                    From the variable names, we can guess that <code>ResponseWriter</code> will be used for writing responses. We can confirm this, by checking the <code>ResponseWriter</code> documentation.
+                </p>
+                <blockquote cite="https://pkg.go.dev/net/http#ResponseWriter"><code><pre>
+                    // Write writes the data to the connection as part of an HTTP reply.
+                    //
+                    // [...]
+                    Write([]byte) (int, error)
+                </pre></code></blockquote>
+                <p>
+                    The <code>Write</code> method seems to be enough for our current purpose. It expects a slice of bytes as an argument, so we must convert our string of <code>Hello, World!</code> into a byte slice <code>[]byte</code>.
+                </p>
+                
+                <h2>This "Hello, World!" thing is not very impressive though</h2>
+                <p>
+                    You would be correct to think that. But as mentioned in the preface, if you know how to respond to an HTTP request, you are now able to create a static website! One problem you would quickly face though is that creating a service that returns the two blogposts I have prepared for now would be super hard to read:
+                </p>
+                <p>
+                    (editor's note: I needed to replace &lt; and &gt; symbols in HTML source code, because they would trigger HTML interpretation in the browser)
+                </p>
+                
+                <blockquote class="massive"><code><pre>
+                package main
+                
+                import (
+                    "fmt"
+                    "net/http"
+                )
+                
+                func main() {
+                    http.HandleFunc("/preface", preface)
+                    http.HandleFunc("/staticserver", staticserver)
+                    err := http.ListenAndServe(":8080", nil)
+                    if err != nil {
+                        panic(err)
+                    }
+                }
+                
+                func preface(w http.ResponseWriter, req *http.Request) {
+                    _, err := w.Write([]byte(`
+                    &lt;!doctype html&gt;
+                    &lt;html&gt;
+                        &lt;head&gt;
+                            &lt;title&gt;daliga.pl | A hands-on course in web/cloud engineering&lt;/title&gt;
+                        &lt;/head&gt;
+                        &lt;body&gt;
+                    
+                    
+                            &lt;h1&gt;A hands-on course in web/cloud engineering&lt;/h1&gt;
+                    
+                            &lt;h2&gt;What's the price?&lt;/h2&gt;
+                            &lt;p&gt;
+                                This tutorial is FREE. I am not a capitalist bootcamp organizer. I am not even a company doing marketing. I am only synthesizing the knowledge I have received from the internet at no cost whatsoever.
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                If you want to give me money, I plan to write a payment gateway at some point that would allow you to do exactly that. But let's not get into the fantasy realm too much.
+                            &lt;/p&gt;
+                    
+                            &lt;h2&gt;Why write another beginner tutorial?&lt;/h2&gt;
+                            &lt;p&gt;
+                                The actual trigger to write this tutorial is trying to explain to my sister and her friends how internet works and how they can start their career in cloud engineering, since they are all studying mathematics and looking for their first jobs. It turns out, they had no idea about how the internet works in a "gut feeling" kind of way.
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                I believe this is because when I was growing up, the internet was still in it's infancy and I remember reading about different versions of HTML and why support for IE6 was a mess. I was also used to playing simple videogames like Tibia, and learning about the game exploits you also learned about network, requests, responses, password security, phishing attempts and so much more. The games were so simple to emulate, that people ran private servers, which were possible to heavily edit and deploy locally, which taught me the basic unix admin skills.
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                The websites people use now, are usually giant social media platforms or centralized entertainment platforms. Dead are the small forums, the fanmade websites created in plain HTML. There are wiki scripts, WordPress plugins, even the website fansites have professionalized beyond young me wildest dreams. It has left the new generation of engineers without a hint on how to start creating what they want to see, not what the tutorial author suggested they should build and how.
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                This tutorial aims to solve the gap between "HTML Basics" and "React Redux Hooks for Enterprise Websites" tutorials.
+                            &lt;/p&gt;
+                            
+                    
+                            &lt;h2&gt;Who is this for?&lt;/h2&gt;
+                            &lt;p&gt;
+                                People who are interested in software engineering on the web. This series will not feature the latest and greatest frameworks. I will stick to pure Go, JavaScript, HTML and CSS for as long as possible. All additional technologies will be explained as we go, as I will have to learn them myself.
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                The code will probably be less than optimal in most places. This is because, most of the code in existence is less than optimal. It always has been. There is no point in hiding what everyone knows. The work is often chaotic, bursts of creativity come and go, systems burn all the time and partial outages are frequent. 
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                We have built elaborate tech stacks for continuous delivery, continuous integration, deployment automation, monitoring, log rotations and so much more, that there is no way anybody sane can reproduce it in a "hobbyist environment" or, what's worse, a "student environment". Most of it is boring installing and debugging installation issues, version differences and missing libraries. And the benefit for a hobbyist? Their website that is read by them only and updated once a month can handle 100k QPS, survive an earthquake, and a tsunami on two separate continents (any continents). This knowledge from what I saw is often obtained at the cost of understanding the basics - that there is a machine that runs an operating system that runs programs and those programs can communicate with eachother by sending requests and receiving responses. And how to essentially "run your own server".
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                The cost? All fun sucked out of programming. And probably some sanity.
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                The truth is, you usually don't need "the tech stack". Even in most "real work environment" the basics of languages mentioned above will be more than enough. What you need to learn is how to ask questions and how to interpret the answers. If you understand this, you can learn any technology quickly and deliver the results you want. And how to come up with cool ideas so that you don't bore yourself to death.
+                            &lt;/p&gt;
+                    
+                    
+                            &lt;h2&gt;What is the expected end result?&lt;/h2&gt;
+                            &lt;p&gt;
+                                I would like to recreate services that I have used in my youth, that didn't need an army of engineers back then, and I don't expect them to need an army now. I would like to showcase how they used to work and how they can be recreated today, using the simplest tech stack possible.
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                The beginning is this blog. If this is the first post you see, I am most likely still working on it. Come on, have a look!
+                            &lt;/p&gt;
+                            
+                    
+                    
+                            &lt;h2&gt;I'm ready, where do I start?&lt;/h2&gt;
+                            &lt;p&gt;
+                                I suggest you open up the repository of this project and have a look what's there currently and what was there when I have commited a file with those words.
+                    
+                                &lt;ul&gt;
+                                    &lt;li&gt;
+                                        Go to the repository of this project and open my first commit. TODO: LINK
+                                    &lt;/li&gt;
+                                    &lt;li&gt;
+                                        Check out the project structure. Before my first commit, I want to have a working static site that I have deployed under a domain I bought, on a server I bought, that you are able to see when you type "daliga.pl" in your browser. This website will feature two articles - this one, and one on how to start creating your own blog.
+                                    &lt;/li&gt;
+                                    &lt;li&gt;
+                                        If this is too easy for you, you can try other projects until you find one that's outside of your current comfort zone. TODO: NEXT PROJECT, HANDLING DYNAMIC ARTICLES
+                                    &lt;/li&gt;
+                                &lt;/ul&gt;
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                If you have absolutely no prior experience with any or some of the technologies used, here is a list of reasonably-long articles that you need to read to understand the basics:
+                                &lt;ul&gt;
+                                    &lt;li&gt;
+                                        &lt;a href="https://go.dev/tour/welcome/1"&gt;A Tour of Go&lt;/a&gt; - Go is the language I will use on the server.
+                                    &lt;/li&gt;
+                                    &lt;li&gt;
+                                        &lt;a href="https://www.w3schools.com/html/html_basic.asp"&gt;HTML Basic&lt;/a&gt; - just this one article. After that you can open &lt;code&gt;blog/01_preface.html&lt;code&gt; to see the HTML content of this page. I wrote it manually, line after line, tag after tag. The longest part was writing the actual text, because I rewrote it about five times already. TODO: Link
+                                    &lt;/li&gt;
+                                &lt;/ul&gt;
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                I will provide an introduction / primer knowledge for each new technology as they get introduced over different projects.
+                            &lt;/p&gt;
+                    
+                            
+                        &lt;/body&gt;
+                    &lt;/html&gt;
+                    `))
+                    if err != nil {
+                        fmt.Printf("[preface] w.Write: %v", err)
+                    }
+                }
+                
+                func staticserver(w http.ResponseWriter, req *http.Request) {
+                    _, err := w.Write([]byte(`
+                    &lt;!doctype html&gt;
+                    &lt;html&gt;
+                        &lt;head&gt;
+                            &lt;title&gt;daliga.pl | Staticfile Server&lt;/title&gt;
+                        &lt;/head&gt;
+                        &lt;body&gt;
+                    
+                    
+                            &lt;h1&gt;Staticfile Server&lt;/h1&gt;
+                    
+                    
+                            &lt;h2&gt;What is this and why should I care?&lt;/h2&gt;
+                            &lt;p&gt;
+                                Serving static files is the most basic operation required for what most people understand as "internet" to work. This is because, at it's core, all websites are a single HTML file. This HTML file can link to other files, which may add interactivity or change the visual style of the page. But what your browser does for each request is nothing more than requesting for a single file.
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                You can see this request if you Inspect any website (for example: google.com, facebook.com, kwestiasmaku.com) and go over to "Network" tab. If you refresh the page now, the request at the top is the first one. It is an HTML file, which probably has many "script" and "link" directives. You can check that the same happens on this page (except the code is readable here and there are not many external files linked).
+                            &lt;/p&gt;
+                    
+                    
+                            &lt;h2&gt;Ok, so how do we go about it?&lt;/h2&gt;
+                            &lt;p&gt;
+                                To being, I usually create a &lt;code class="filename"&gt;main.go&lt;/code&gt; that prints hello, just to make sure my computer didn't go crazy overnight.
+                    
+                                &lt;pre&gt;
+                                    package main
+                    
+                                    import "fmt"
+                    
+                                    func main() {
+                                        fmt.Println("Hello, World!")
+                                    }
+                                &lt;/pre&gt;
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                Next up, we need to check how to create an http server. I suggest a &lt;a class="googling" href="https://www.google.com/search?q=golang+http+server&oq=golang+http+server&aqs=chrome.0.0i512j0i20i263i512j0i512l8.4012j0j7&sourceid=chrome&ie=UTF-8"&gt;"golang http server" google search&lt;/a&gt; which in my situation results in the following results (to which I've added my opinion about the article in question):
+                    
+                                &lt;ul&gt;
+                                    &lt;li&gt;
+                                        &lt;a class="tutorial digitalocean" href="https://www.digitalocean.com/community/tutorials/how-to-make-an-http-server-in-go"&gt;How To Make an HTTP Server in Go&lt;/a&gt; - very good, beginner-friendly tutorial. Contains all of the information needed to reproduce my steps slower. Recommended for beginners.
+                                    &lt;/li&gt;
+                                    &lt;li&gt;
+                                        &lt;a class="tutorial gobyexample" href="https://gobyexample.com/http-servers"&gt;Go by Example: HTTP Servers&lt;/a&gt; - short, to the point, more or less what I am going to build anyways. Good explanations for what is done and why.
+                                    &lt;/li&gt;
+                                    &lt;li&gt;
+                                        &lt;a class="tutorial stdlib" href="https://pkg.go.dev/net/http"&gt;net/http documentation&lt;/a&gt; - standard library documentation. This is what I would use most often, because the standard library documentation is well written. It also comes straight from the code author, which means I am not susceptible to third-person bias that a tutorial author might introduce.
+                                    &lt;/li&gt;
+                                &lt;/ul&gt;
+                    
+                                No matter which article you use, you should end up with more or less this code:
+                    
+                                &lt;pre&gt;
+                                    package main
+                    
+                                    import (
+                                        "fmt"
+                                        "net/http"
+                                    )
+                                    
+                                    func main() {
+                                        http.HandleFunc("/hello", hello)
+                                        err := http.ListenAndServe(":8080", nil)
+                                        if err != nil {
+                                            panic(err)
+                                        }
+                                    }
+                                    
+                                    func hello(w http.ResponseWriter, req *http.Request) {
+                                        _, err := w.Write([]byte("Hello, World!"))
+                                        if err != nil {
+                                            fmt.Printf("w.Write: %v", err)
+                                        }
+                                    }                   
+                                &lt;/pre&gt;
+                    
+                                Which shows "Hello, World!" in browser after you go to localhost:8080, yay!
+                            &lt;/p&gt;
+                            
+                            &lt;p&gt;
+                                So, step by step, we call &lt;code&gt;HandleFunc&lt;/code&gt; from &lt;code&gt;http&lt;/code&gt; package. If you check the documentation (you can also most likely do this from your editor, is VSCode you only have to hover your cursor over the function name if you have go support installed TODO - TUTORIAL HOW).
+                    
+                                &lt;blockquote cite="https://pkg.go.dev/net/http#HandleFunc"&gt;&lt;pre&gt;
+                                    // HandleFunc registers the handler function for the given pattern
+                                    // in the DefaultServeMux.
+                                    // The documentation for ServeMux explains how patterns are matched.
+                                    func HandleFunc(pattern string, handler func(ResponseWriter, *Request)) {
+                                        DefaultServeMux.HandleFunc(pattern, handler)
+                                    }
+                                &lt;/pre&gt;&lt;/blockquote&gt;
+                    
+                                Looking at the documentation of &lt;code&gt;DefaultServeMux&lt;/code&gt;, you can read in detail how the handler is picked. For now, you can trust me that &lt;code&gt;hello&lt;/code&gt; matches &lt;code&gt;hello&lt;/code&gt; URL path and we can move forward.
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                Next up is &lt;code&gt;http.ListenAndServe&lt;/code&gt;. Again we look into the documentation:
+                    
+                                &lt;blockquote cite="https://pkg.go.dev/net/http#ListenAndServe"&gt;&lt;pre&gt;
+                                    // ListenAndServe listens on the TCP network address addr and then calls
+                                    // Serve with handler to handle requests on incoming connections.
+                                    // Accepted connections are configured to enable TCP keep-alives.
+                                    //
+                                    // The handler is typically nil, in which case the DefaultServeMux is used.
+                                    //
+                                    // ListenAndServe always returns a non-nil error.
+                                    func ListenAndServe(addr string, handler Handler) error {
+                                &lt;/pre&gt;&lt;/blockquote&gt;
+                    
+                                What you need to get from that is that &lt;code&gt;ListenAndServe&lt;/code&gt; is the function that listens for requests and calls our handler function to write a response.
+                            &lt;/p&gt;
+                    
+                            &lt;h2&gt;The Handler&lt;/h2&gt;
+                            &lt;p&gt;
+                                Finally, we get to our Handler implementation.
+                                &lt;blockquote&gt;
+                                    func hello(w http.ResponseWriter, req *http.Request) {
+                                        _, err := w.Write([]byte("Hello, World!"))
+                                        if err != nil {
+                                            fmt.Printf("w.Write: %v", err)
+                                        }
+                                    }                
+                                &lt;/pre&gt;&lt;/blockquote&gt;
+                    
+                                If the function signature looks random, notice that it's the exact same structure that &lt;http.HandleFunc&gt;request&lt;/http.HandleFunc&gt;
+                                &lt;blockquote cite="https://pkg.go.dev/net/http#HandleFunc"&gt;&lt;pre&gt;
+                                    // HandleFunc registers the handler function for the given pattern
+                                    // in the DefaultServeMux.
+                                    // The documentation for ServeMux explains how patterns are matched.
+                                    func HandleFunc(pattern string, handler func(ResponseWriter, *Request)) {
+                                        DefaultServeMux.HandleFunc(pattern, handler)
+                                    }
+                                &lt;/pre&gt;&lt;/blockquote&gt;
+                            &lt;/p&gt;
+                            &lt;p&gt;
+                                From the variable names, we can guess that &lt;code&gt;ResponseWriter&lt;/code&gt; will be used for writing responses. We can check what the &lt;code&gt;ResponseWriter&lt;/code&gt; is in it's documentation, neat!
+                    
+                                &lt;blockquote cite="https://pkg.go.dev/net/http#ResponseWriter"&gt;&lt;pre&gt;
+                                    // Write writes the data to the connection as part of an HTTP reply.
+                                    //
+                                    // [...]
+                                    Write([]byte) (int, error)
+                                &lt;/pre&gt;&lt;/blockquote&gt;
+                    
+                                The &lt;code&gt;Write&lt;/code&gt; method seems to be enough for our current purpose. It expects a slice of bytes as an argument, so we must convert our string of &lt;code&gt;"Hello, World!"&lt;/code&gt; into a byte slice &lt;code&gt;[]byte&lt;/code&gt;.
+                            &lt;/p&gt;
+                    
+                            &lt;h2&gt;This "Hello, World!" thing is not very impressive though&lt;/h2&gt;
+                            &lt;p&gt;
+                                You would be correct to think that. But as mentioned in the preface, if you know how to respond to an HTTP request, you are now able to create a static website! One problem you would quickly face though is that creating a service that returns the two blogposts I have prepared for now would be super hard to read and MASSIVE:
+                                
+                                &lt;blockquote class="massive"&gt;&lt;pre&gt;
+                    
+                                &lt;/pre&gt;&lt;/blockquote&gt;
+                            &lt;/p&gt;
+                        &lt;/body&gt;
+                    &lt;/html&gt;
+                    `))
+                    if err != nil {
+                        fmt.Printf("[staticserver] w.Write: %v", err)
+                    }
+                }
+                </pre></code></blockquote>
+                
+                <p>
+                    One additional struggle is that if you write your HTML directly into a string, it doesn't support code highlighting, autocomplete and documentation. Writing HTML code in a modern IDE would usually do this by default if you're editing a file with <code>.html</code> extension. So you could have already noticed, that this repository contains a <code>_blog</code>. Somewhere within that directory, there should be files with <code>.html</code> extension. If you double-click that file, it should open in your browser and show you what the site would look like on a browser, if this HTML was sent in a response.
+                </p>
+                <p>
+                    Yes, I know the current visuals are stunning. We will improve them later.
+                </p>
+                <p>
+                    It would be great, if instead of returning a hardcoded string, we could read a file from our disc, and write it's content in the response instead. Let's <a href="https://www.google.com/search?q=golang+load+file&sxsrf=ALiCzsZE63PGvg23tB7rwAjugjP53YR-Pg%3A1656687058158&ei=0gm_YtOcCZKJrwTnyqrYBw&ved=0ahUKEwjTzeuc-Nf4AhWSxIsKHWelCnsQ4dUDCA4&uact=5&oq=golang+load+file&gs_lcp=Cgdnd3Mtd2l6EAMyBQgAEIAEMgUIABDLATIFCAAQywEyBQgAEMsBMgUIABDLATIGCAAQHhAWMggIABAeEBYQCjIICAAQHhAWEAoyBggAEB4QFjIGCAAQHhAWOgcIABBHELADOgQIIxAnOhEILhCABBCxAxCDARDHARDRAzoLCAAQgAQQsQMQgwE6CAgAELEDEIMBOggIABCABBCxAzoICC4QgAQQsQM6EQguEIAEELEDEIMBEMcBEKMCOgUILhCABDoECAAQA0oECEEYAEoECEYYAFCIEVjNG2DeH2gDcAF4AIABTYgB5AiSAQIxNpgBAKABAcgBCMABAQ&sclient=gws-wiz">google for that</a>. You will probably see websites you recognize already. I've chosen <a href="https://gobyexample.com/reading-files">gobyexample</a> because I don't remember their tips failing me. From my experience they only sometimes cover too basic topics when I'm searching for a solution to a more niche problem.
+                </p>
+                <blockquote><code><pre>
+                    // Perhaps the most basic file reading task is
+                    // slurping a file’s entire contents into memory.
+                
+                    dat, err := os.ReadFile("/tmp/dat")
+                    check(err)
+                    fmt.Print(string(dat))
+                </pre></code></blockquote>
+                <p>
+                    Lucky us! This is exactly what we need for our new program!
+                </p>
+                <blockquote><code><pre>
+                package main
+                
+                import (
+                    "net/http"
+                    "os"
+                )
+                
+                func main() {
+                    http.HandleFunc("/preface", preface)
+                    http.HandleFunc("/staticserver", staticserver)
+                    err := http.ListenAndServe(":8080", nil)
+                    if err != nil {
+                        panic(err)
+                    }
+                }
+                
+                func preface(w http.ResponseWriter, req *http.Request) {
+                    content, err := os.ReadFile("_blog/01_preface.html")
+                    if err != nil {
+                        panic(err)
+                    }
+                    w.Write(content)
+                }
+                
+                func staticserver(w http.ResponseWriter, req *http.Request) {
+                    content, err := os.ReadFile("_blog/02_staticfile_server.html")
+                    if err != nil {
+                        panic(err)
+                    }
+                    w.Write(content)
+                }
+                </pre></code></blockquote>
+                <p>
+                    Previous version would serve the same content untill you stopped the program execution (<kbd>Ctrl</kbd> + <kdb>c</kdb>), recompiled the program and executed it again. go run *.go is shortcut for "compile and run".
+                <p>
+                    Our new code provides one bonus functionality - each time I modify the file, save it and refresh my website, the content will update. On request matched by <code>"/preface"</code> pattern, our program will read content of file found under <code>_blog/01_preface.html</code> path on our hard drive and write its content as the response.
+                </p>
+                
+                <h2>What is a function call?</h2>
+                <p>
+                    For starters, let's look at our existing handler code and notice, that the only thing that changes between the two functions is the string argument to <code>os.ReadFile</code>. If we could create a function that accepts <code>filePath</code> as parameter, we could call it with a different parameter.
+                </p>
+                <p>
+                    When thinking about solving this problem, you may realize that we cannot change the signature of the second <code>http.HandleFunc</code> argument, because we have no control over <code>http</code> package. So let's sum up  what we know about types in a code snippet:
+                </p>
+                <code><pre>
+                http.HandleFunc("/this must be a string", func(w http.ResponseWriter, r *http.Request) {
+                    // this function signature must match
+                })
+                </pre></code>
+                <p>
+                    In Go, functions can be variable values too, ready to call any time you need them. So we can further expand the code into:
+                </p>
+                <code><pre>
+                handler := func(w http.ResponseWriter, r *http.Request) {
+                    // this function signature must match
+                }
+                http.HandleFunc("/this must be a string", handler)
+                </pre></code>
+                
+                <h2>Game Changer</h2>
+                <p>
+                    What we are missing now is how to create two functions that will open different files without duplicating the code for opening those files. The game changing idea is that we can return functions from functions. Program presented below:
+                </p>
+                <code><pre>
+                package main
+                
+                import (
+                    "net/http"
+                )
+                
+                func main() {
+                    handler := func(w http.ResponseWriter, r *http.Request) {
+                        // this function signature must match
+                    }
+                    http.HandleFunc("/this must be a string", handler)
+                    err := http.ListenAndServe(":8080", nil)
+                    if err != nil {
+                        panic(err)
+                    }
+                }
+                </pre></code>
+                <p>
+                    would be equivalent (unless you start digging deep into how the language works, probably a couple of years into your career) to the following code:
+                </p>
+                <code><pre>
+                package main
+                
+                import (
+                    "net/http"
+                )
+                
+                func main() {
+                    handler := handlerCreator("whatever you may need to pass to the handler")
+                    http.HandleFunc("/this must be a string", handler)
+                    err := http.ListenAndServe(":8080", nil)
+                    if err != nil {
+                        panic(err)
+                    }
+                }
+                
+                func handlerCreator(someArguments string) http.HandlerFunc {
+                    return func(w http.ResponseWriter, r *http.Request) {
+                        // this function signature must match
+                    }
+                }
+                </pre></code>
+                <p>
+                    Now we can use <code>someArguments</code> with value <code>whatever you may need to pass to the handler</code> in returned function. In the example server code below, 
+                </p>
+                <code><pre>
+                package main
+                
+                import (
+                    "net/http"
+                    "os"
+                )
+                
+                func main() {
+                    prefaceHandler := handlerCreator("_blog/01_preface.html")
+                    http.HandleFunc("/preface", prefaceHandler)
+                    staticfileServerHandler := handlerCreator("_blog/02_staticfile_server.html")
+                    http.HandleFunc("/staticfile_server", staticfileServerHandler)
+                    err := http.ListenAndServe(":8080", nil)
+                    if err != nil {
+                        panic(err)
+                    }
+                }
+                
+                func handlerCreator(filepath string) http.HandlerFunc {
+                    return func(w http.ResponseWriter, r *http.Request) {
+                        content, err := os.ReadFile(filepath)
+                        if err != nil {
+                            panic(err)
+                        }
+                        w.Write(content)
+                    }
+                }
+                </pre></code>
+                <p>
+                    Running this code starts an http server that exposes two endpoints:
+                </p>
+                <ul>
+                    <li><a href="http://localhost:8080/preface">http://localhost:8080/preface</a> showing the content of <code>_blog/01_preface.html</code></li>
+                    <li><a href="http://localhost:8080/staticfile_server">http://localhost:8080/staticfile_server</a> showing the content of <code>_blog/02_staticfile_server.html</code></li>
+                </ul>
+                
+                <h2>Bugs and features</h2>
+                <p>
+                    There is an old saying of "it's not a bug, it's a feature!" very common to be thrown around in programming communities. Sometimes to dismiss an obvious bug, which is a bad thing. But sometimes, you really cannot tell.
+                </p>
+                <p>
+                    If you have a look into the <code>handlerCreator</code> function from the previous snippet, you will see that <code>os.ReadFile(filepath)</code> is called each time the function is executed. This means that for each request we will open the file from hard drive, copy it's content and close the file. This may be suboptimal in big systems, but it's certainly not for my small personal website.
+                </p>
+                <p>
+                    An alternative pattern would be to use the following code:
+                </p>
+                <pre>
+                func handlerCreator(filepath string) http.HandlerFunc {
+                    content, err := os.ReadFile(filepath)
+                    if err != nil {
+                        panic(err)
+                    }
+                    return func(w http.ResponseWriter, r *http.Request) {
+                        w.Write(content)
+                    }
+                }				
+                </pre>
+                <p>
+                    The <code>os.ReadFile(filepath)</code> is executed only once - when <code>handleCreator("path_to_file")</code> is called. Then, on handler call, the only thing that happens is <code>content</code> being written as HTTP response.
+                </p>
+                <p>
+                    Please notice, that this will not refresh the page content unless you restart your server - the content is loaded on server start and cached in memory for faster responses. Congratulations, you now understand what a "cache" is.
+                </p>
+                <p>
+                    I would personally consider caching the site a bug in our scenario, because it's much more convenient to reload the file on page refresh, to show us (the developers) the current state of our system.
+                </p>
+                
+                <h2>One-liner magic for Go (an actual staticfile server)</h2>
+                <p>
+                    As you might have noticed by now, we have not created a fileserver at all. You got bamboozled. The actual oneliner code would be 
+                </p>
+                <code><pre>
+                func main() {
+                    fs := http.FileServer(http.Dir("_blog"))
+                    http.Handle("/", fs)
+                    err := http.ListenAndServe(":8080", nil)
+                    if err != nil {
+                        panic(err)
+                    }
+                }				
+                </pre></code>
+                <p>
+                    And I suggest you to use this each time you actually need a staticfile server. For example, it handles users trying to move up the directory tree. Which is a security vulnerability, because you generally don't want randoms from the internet browsing the files on your server searching for secrets and passwords.
+                </p>
+                
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

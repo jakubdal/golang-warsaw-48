@@ -1,0 +1,441 @@
+# How to deploy your first web application?
+
+Jakub Daliga
+@kuba_daliga
+
+## Disclaimer
+
+- no holy truths
+- sleazy and hacky solutions are ok
+- not an actual end to end tutorial
+- explaining the mental models, not the actual CPU operations
+- want to convince young developers to rely on their skills intead of third-party software
+- writing broken software is ok
+	- in actual job "seniors" should protect you from yourself
+	- for pet projects it's irrelevant how secure or full of bugs they are
+- studying is different from learning
+	- study more, don't rely on already existing content for learning
+
+## How to develop your first web application?
+
+## How to develop your first web application?
+
+.code mvp/main.go
+
+## How to deploy your first web application?
+
+## How to deploy your first web application?
+
+	$ go run *.go
+	
+: never close your terminal window
+
+## (round of applause)
+
+.image img/cool_gopher.png 500 _
+
+.caption _cool_gopher_smoking_marijuhana_in_sunglasses_driving_lamborginhi_in_miami_pencil_drawing_ by [[https://labs.openai.com/][DALL-E]]
+
+## No, but really...
+
+## My Golang experience
+
+.image img/wp.jpg 200 _
+
+- dockerfiles
+- private cloud
+- separate inhouse admin / operator team
+
+: good use of open-source tooling with custom procedures
+
+## My Golang experience
+
+.image img/getanna.png 200 _
+
+- cheapest VPS from OVH (currently - 15zł / month)
+- self-hosted everything
+- CTO, backend dev, salesperson, operator, oncall, customer support, sales...
+- wasted a ton of free GCP credits
+- `nohup go run *.go &`
+
+: hacky everything with a lot of faith and 24/7 having a computer on me
+: also installed a terminal app for my phone to be able to restart the server on the go
+
+## My Golang experience
+
+.image img/tiktok.png 200 _
+
+- kinda custom everything
+- but some things were pretty cloud-standard
+- who knows what falls under NDA?
+
+: mix of both approaches mentioned above
+
+## My Golang experience
+
+.image img/interview_comparison.jpg
+
+.caption _Buff_Doge_vs_Cheems_ generated with [[https://imgflip.com/memegenerator/Buff-Doge-vs-Cheems][imgflip.com]]
+
+: I still don't have a "be all-end all" solution
+: instead, I approach each project with naivity of a junior engineer
+: trying to understand what we need to do and why
+
+## What is a web application?
+
+.image img/google_network.png 400 _
+
+- browser sends request
+- server sends response
+- browser interprets response
+
+## HTML, CSS, JS...
+
+.image img/google_response.png 300 _
+
+- HTML defines structure
+- CSS enhances visuals
+- JS adds interactivity
+
+\... unless you are a professional developer in 2022
+
+: a lot of things are now done using various frameworks
+: those frameworks offer different tradeoffs compared to "traditional" approaches
+: impossible to "reverse-engineer" without serious knowledge and experience
+: the basics are still the same - browsers send requests, servers send responses
+:
+: all of this doesn't matter if you're not working for a corporation, because the
+: goals of those frameworks are largely irrelevant for small teams and small products
+
+## Case study - creating your own blogging platform
+
+## Defining your application MVP
+
+- reachable by typing a human-readable string in the URL bar
+: that's what the websites are for
+- upgradable with or two scripts that don't require thinking for quick iteration
+: otherwise no update will be done ever
+- possible to add blog posts without restarting the server
+: that's pretty basic for a blog platform
+- access to metrics and logs
+: for troubleshooting and inspection
+- use the simplest deployment pipeline possible
+: for educational purposes
+- high score on pagespeed.web.dev
+: a simple benchmark that I know is achieveable because Jacob Martin has done that https://jacobmartins.com/
+
+
+: before you begin writing ANY application, you need to define what it should do
+: there are two enemies you will face otherwise: no DoD and scope creep
+: this means, you will never release your app ever
+
+## "Feature creep" we "avoid"
+
+- Pagination
+- Image display
+- Comments
+- Admin panel
+- Monetization
+- User tracking
+- Cookie / GDPR popups
+- DDOS protection
+- Reusing plugins from other creators
+- SEO / SEM optimization
+- Fault tolerance
+- ...
+
+## Product Mockup
+
+.image img/mockup.jpg 400 _
+
+: in a good company, you will get interactive mockups
+: they should detail all wanted and unwanted interactions
+
+: while it is not your responsibility as a software engineer to
+: understand usability concerns or visual flair, you should at least
+: be able to point out that a view from a mockup is unreachable
+
+: because I have no product team, I have just drawn a quick mockup on a piece of paper with two possible interactions
+: one for going to full article page
+
+: can you spot an unreachable view?
+
+## System Architecture
+
+.image img/architecture.png
+
+- keep the graphs simple
+- rigid frameworks obfuscate ideas
+- implementation details can usually be omitted
+
+: the architecture is super simple
+: we have a storage that holds our articles
+: upon request to the main page, we will load a list of articles and their leads and display them to the user
+: upon request to an article page, we will load the content of given article and show it to the user
+
+## Our Frontend
+
+.code staticarticles/articles/landing.html
+
+: my frontend is quite simple, see "articles" folder
+: contains HTML documents for landing.html (the landing page)
+: and 3 articles named 1.html, 2.html and 3.html
+
+## Our Backend (landing)
+
+.code staticarticles/main.go /LANDINGSTART OMIT/,/LANDINGEND OMIT/
+
+- match routing pattern
+- read content from file
+	- on error, log error message to standard output and return status code 500
+- on success, write content as response
+
+: to implement the backend, I have called http.HandleFunc four times
+: one for landing and one for each article
+
+## Our Backend
+
+.code staticarticles/main.go /1START OMIT/,/1END OMIT/
+
+- match routing pattern
+- read content from file
+	- on error, log error message to standard output and return status code 500
+- on success, write content as response
+
+## Our Backend
+
+.code staticarticles/main.go /2START OMIT/,/2END OMIT/
+
+- match routing pattern
+- read content from file
+	- on error, log error message to standard output and return status code 500
+- on success, write content as response
+
+## Our Backend
+
+.code staticarticles/main.go /3START OMIT/,/3END OMIT/
+
+- match routing pattern
+- read content from file
+	- on error, log error message to standard output and return status code 500
+- on success, write content as response
+
+## Our Backend
+
+.code staticarticles/main.go /3START OMIT/,/3END OMIT/ HLchanges
+
+Everything except those three lines stays the same.
+
+## What is a function?
+
+.image img/cleaning.png 500 _
+
+.caption _gopher_performing_multiple_house_chores_at_the_same_time_watercolor_ by [[https://labs.openai.com/][DALL-E]]
+
+: a function is a shortcut - for example, "clean a house" is a function
+: that is invoked by a parent or partner and while it's specification is
+: usually vague, there are parameters in form of available cleaning supplies
+: and expected output of trash from your room and nice smell in the air
+
+: what happens inside the function is called an "implementation detail"
+: you can implement this function using an automated vacuum, employ a person
+: or use your own manual labor to perform the task
+
+## What is an interface?
+
+.image img/interface.png 500 _
+
+.caption _oil_painting_of_gopher_with_a_long_grey_beard_sitting_in_a_library_and_pondering_on_the_meaning_of_life_ by [[https://labs.openai.com/][DALL-E]]
+
+: an interface is used to group functions together
+: you can split or combine them together, to achieve the interface that you actually
+: require
+
+: for example:
+: 	house cleaner interface for house cleaning
+: 	party animal interface for partying
+
+## What is a statically typed language?
+
+.code dynamicarticles/main.go /ARTICLESTART OMIT/,/ARTICLEEND OMIT/
+
+- there is technically no "fully dynamic typing" - you always expect something
+- with statically typed language, you can enforce that expectation in code
+- we will see "dynamically typed" content later
+
+## Defining our interface
+
+.code dynamicarticles/main.go /INTERFACESTART OMIT/,/INTERFACEEND OMIT/
+
+## Static and dynamic content
+
+*Dynamic content* - content that is created "on the fly".
+
+*Static content* - content that is "self-contained", it doesn't rely on additional data.
+
+- landing page is *dynamic* - we generate it using existing articles
+- article page is *static* - we want to return a file from directory as-is
+
+## Implementing the interface in pseudocode
+
+	Article(id int) (Article, error)
+
+- Convert id to string, add `.html` suffix constructing `<filename>`
+- Load file from `articles/<filename>`
+	- If the file does not exist, return an error
+- Construct an `Article` struct from the file content
+	- If file content is invalid, return an error
+- Return the article with `nil` error
+
+## Implementing the interface in pseudocode
+
+	Articles() ([]Article, error)
+
+- Start with an empty article list
+- For each file in `articles` directory:
+	- If the file doesn't have `.html` extension, ignore it and log this action
+	- If the file does have `.html` extension:
+		- Get `ID` parameter from filename
+			- If filename cannot be converted to an integer, return an error
+		- Get an article using `GetArticle` function from previous slide
+			- If `GetArticle` returns an error, return an error
+		- Add new article to our list of articles
+- Return the list of articles with `nil` error
+
+: this means our landing page will break if we put a badly-formatted .html file in our
+: articles/ folder, but this is not a bug - it is a choice
+: if you'd like to not return an error but instead log that there is an errornous
+: file, you can do it - you are the boss
+
+## Implementing the pseudocode in Go
+
+.code dynamicarticles/filesystemstorage.go /LISTARTICLESSTART OMIT/,/LISTARTICLESEND OMIT/
+
+- The filepath separator will not work on Windows
+	- `os.PathSeparator` exists for a reason
+- It doesn't matter, because we only want to deploy something usable
+- Blackblox `Article(id)` call for now
+
+## Implementing the pseudocode in Go
+
+.code dynamicarticles/filesystemstorage.go /GETARTICLESTART OMIT/,/GETARTICLEEND OMIT/
+
+- I assume that I will be able to construct an article from a file
+- I can leave that as a "function" or "interface" and implement later
+- Possibly changing the article file content as I see fit
+
+## Constructing an article
+
+.code dynamicarticles/filesystemstorage.go /CONSTRUCTARTICLESTART OMIT/,/CONSTRUCTARTICLEEND OMIT/
+
+- Relies on structure of HTML document
+	- This is the example of "dynamic typing" mentioned before
+	- In dynamically typed language you just remember those assumptions
+- I can implement it as badly as I want and fix it once it becomes a bottleneck
+
+## Writing your own helper functions
+
+.code dynamicarticles/filesystemstorage.go /STRINGBETWEENSTART OMIT/,/STRINGBETWEENEND OMIT/
+
+If a function you need doesn't exist - it's ok to write your own extensions to standard library!
+
+## Type assertion to get compiler feedback
+
+.code dynamicarticles/filesystemstorage.go /TYPEASSERTIONSTART OMIT/,/TYPEASSERTIONEND OMIT/
+
+I usually do this to have a highlight in my IDE when I'm not actually implementing the interface correctly
+
+## Using interfaces to expand our program
+
+.code dynamicarticles/loggingstorage.go
+
+## You could actually do way less...
+
+	go get github.com/go-chi/chi
+
+- I will use https://github.com/go-chi/chi for:
+	- easier pattern rules
+	- `chi.URLParam` function to extract id
+- It means I don't have to write my own HTTP path parsing
+- You could use Firebase and only write the frontend
+- You could use WordPress and just focus on the deployment
+- You could use Medium and avoid any programming
+- But then where are you going to start learning?
+
+## You could also do way more
+
+- Use bare C
+- Setup private Kubernetes cluster on Raspberry Pi
+- Support infinite horizontal scaling
+- Write a custom recommendation engine
+- Automatically add new posts to your Twitter / Facebook accounts
+
+## Glueing it all together
+
+.code dynamicarticles/main.go /MAINSTART OMIT/,/MAINEND OMIT/
+
+## Returning a single article
+
+.code dynamicarticles/main.go /GETARTICLEHANDLERSTART OMIT/,/GETARTICLEHANDLEREND OMIT/
+
+## Landing template
+
+.code dynamicarticles/main.go /TEMPLATESTART OMIT/,/TEMPLATEEND OMIT/
+
+## Teaser template
+
+.code dynamicarticles/main.go /TEASERSTART OMIT/,/TEASEREND OMIT/
+
+At this point I suggest using `text/template` or `html/template` package.
+
+## Returning list of articles
+
+.code dynamicarticles/main.go /LISTARTICLESSTART OMIT/,/LISTARTICLESEND OMIT/
+
+## Generating article URLs
+
+.code dynamicarticles/main.go /ARTICLEURLSTART OMIT/,/ARTICLEURLEND OMIT/
+
+- pretty URL generated for ✨aesthetic✨ purposes
+- maybe also relevant for SEO, which is irrelevant to us
+
+## The deployment itself
+
+	scp * your_username@your_vps_ip
+	ssh your_username@your_vps_ip
+	go build -o blog
+	nohup ./blog 1>stdout 2>stderr &
+
+- simple - requires only go to be installed on the VPS
+- copy-paste friendly
+- no expectations, no guarantees
+- you can improve your deployment pipeline from here once you encounter problems
+- solve your problems with `sudo`, worst case scenario someone hacks your VPS and you recreate it
+- still missing the DNS setup, but I'm still working on an in-depth article on it...
+- default port for HTTP is 80, default port for HTTPS is 443
+
+## bUt ThIs Is NoT bEsT pRaCtIcE!11!!!!!!11
+
+.image img/nohup.jpg 200 _
+
+- best practices become antipatterns
+- actual best practices emerge from experimenting with mediocre practices
+- in my opinion the best practice is a shipped, working product
+- if you learn on each failure, you will discover it's possible to fail forward
+- JUST PUBLISH YOUR CODE AND SEND THE APP TO YOUR FRIENDS FOR REVIEW
+- wait for a crash, rinse, repeat
+- you will learn to reject offers from bad companies hunting for code monkeys
+
+## Google questions instead of answers
+
+.image img/google_questions.png 400 _
+
+- first article is about Heroku
+- second and third are about Daemonizing your process
+- fourth article is about deploying on Google Cloud
+
+## Thank you for your attention!
+
+.image img/gopherking.png 500 _
+
+.caption _moody_oil_painting_of_gopher_in_a_spacesuit_sitting_triumphantly_on_a_digital_throne_amongst_computer_debris_ by [[https://labs.openai.com/][DALL-E]]

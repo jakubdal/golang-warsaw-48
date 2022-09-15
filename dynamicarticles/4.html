@@ -1,0 +1,354 @@
+<h1>You don't need an Operations team to deploy your code</h1>
+<h2>Where should you deploy?</h2>
+<p>
+    If you look at job boards, you might expect that I suggest you deploy your private service on <abbr title="Google Cloud Platform">GCP</abbr> or <abbr title="Amazon Web Services">AWS</abbr>. Maybe DigitalOcean, if you get a lot of YouTube ads recently.
+</p>
+<p>
+    Wrong.
+</p>
+<p>
+    I would suggest getting a plain old VPS (Virtual Private Server). This is a virtual machine on a shared physical machine, with a barebones operating system. I suggest you use Debian, because that is "the default" for most places I have worked at.
+</p>
+<p>
+    Why the direct deployment rather than a managed Kubernetes? For starters, you don't need high-availability for your private website. Writing your entire architecture with "web scale" in mind will slow down your fun significantly. Second reason is that if you understand how a program is built, how it's dependencies are managed, how problematic it can be at times, it will allow you to understand what and why tools like Kubernetes are automating, and what are the possible tradeoffs you may encounter when using <a href="https://cloud.google.com/functions">Cloud Functions</a> or <a href="https://aws.amazon.com/lambda/">Lambdas</a> .
+</p>
+<p>
+    At the end of the day - the only thing we need is a "runtime" for our application. Some place that will execute our code.
+</p>
+
+<h2>My personal hosting choice</h2>
+<p>
+    I personally use <a href="https://www.ovhcloud.com/pl/">OVH</a>. I was not paid for this article by them or anyone else. OVH is a European provider that I remember from times when I was still at school since they had the cheapest options on the market and every penny counted. I don't know if this is the cheapest option now, but they support editing domain DNS records (you'll learn about it later) and connecting through SSH to the VPS so that's enough features for me. I also bought my domain <code>daliga.pl</code> from OVH, because I was already using their services and they seem to support everything I will need for now.
+</p>
+<p>
+    There are a ton of alternatives, varying in prices, data center location, network quality and customer support. Usually it doesn't matter. Just pick the one that's local to  you (to avoid high added latency during development) and cheaper (per month) than a price of cigarettes.
+</p>
+
+<h2>How the internet works?</h2>
+<p>
+    For our purposes we can separate the process of "website working" into two steps.
+</p>
+<h3>Step one - data delivery</h3>
+<p>
+    Our server uses the HTTP protocol. It's detailed specification can be found in <a href="https://datatracker.ietf.org/doc/html/rfc2616">RFC2616</a>. In <a href="https://datatracker.ietf.org/doc/html/rfc2616#section-1.4">section 1.4 of the RFC</a>, we can read that HTTP is a communication protocol built on top of TCP, with the information about default ports for handling traffic.
+</p>
+<blockquote cite="https://datatracker.ietf.org/doc/html/rfc2616#section-1.4"><pre>
+HTTP communication usually takes place over TCP/IP connections. The
+default port is TCP 80 [19], but other ports can be used. This does
+not preclude HTTP from being implemented on top of any other protocol
+on the Internet, or on other networks.
+</pre></blockquote>
+<p>
+    What you need to know for now is that TCP enables sending messages between two entities and it identifies connections by ports. Up to this point, we have exposed our server on port <code>8080</code>. This is why we needed to specify the port in our browser. Writing <code>http://localhost</code> is equivalent to <code>http://localhost:80</code>.As a use you omit this part, because it would be hard to justify requiring everyone to know they HAVE to add <code>:80</code> at the end of each web address and there would probably be plugins doing that the same way we have adblocks now. Adding the <code>:8080</code> suffix forces the browser to establish connection with <code>http://localhost:80</code> on port <code>8080</code> instead of the usual <code>80</code>.
+</p>
+<p>
+    If you change your port to <code>80</code> using <code>err := http.ListenAndServe(":80", router)</code> and try to run your service, you may run into the following error:
+</p>
+<samp class="stderr"><pre>
+    panic: listen tcp :80: bind: permission denied
+</pre></samp>
+<p>
+    If you do <a href="https://www.google.com/search?q=panic%3A+listen+tcp+%3A80%3A+bind%3A+permission+denied&oq=panic%3A+listen+tcp+%3A80%3A+bind%3A+permission+denied">a quick google search</a>, you will be able to find <a href="https://jessicadeen.com/posts/2020/how-to-solve-the-listen-tcp-80-bind-permission-denied-error-in-docker/">an article by Jessica Deen</a>. In it, we learn that we need to create a runnable file and give it some permissions in order to listen on port <code>80</code>. In my case, it required the following commands (with outputs):
+</p>
+<blockquote><pre>
+    ~/go/wombat$ go build
+    ~/go/wombat$ ls
+    <samp class="stdout">_blog  go.mod  go.sum  LICENSE  main.go  README.md  wombat</samp>
+    ~/go/wombat$ setcap 'cap_net_bind_service=+ep' wombat
+    <samp class="stdout">unable to set CAP_SETFCAP effective capability: Operation not permitted</samp>
+    ~/go/wombat$ sudo setcap 'cap_net_bind_service=+ep' wombat
+    <samp class="stdout">[sudo] password for ********: 
+    Sorry, try again.
+    [sudo] password for ********: </samp>
+    ~/go/wombat$ 
+</blockquote></pre>
+<p>
+    As you can see I mistyped the password and didn't immediately realize I needed superuser permissions. That happens. At the end of the day, I can write <code>./wombat</code>, go to <code>http://localhost/preface</code> and see the first post of my blog and this is all that matters.
+</p>
+        
+<h2>What is a "deployment"?</h2>
+<p>
+    "Deployment" is a shortcut for "moving code from local test environment to production environment possibly replacing the old version and adding new features or fixing issues found in the previous version". In our case - it will mean copying our files to the VPS server, building our file and running it on port <code>80</code>. At the end of this step, I would like to be able to enter the IP address of my VPS and see my blogpost.
+</p>
+<p>
+    My deployment plan is as follows:
+</p>
+<ol>
+    <li><a href="https://www.digitalocean.com/community/tutorials/how-to-use-rsync-to-sync-local-and-remote-directories"><code>rsync -azP . &lt;my_server&gt;:/home/debian/wombat/</code></a> on my local machine, to copy files from my local development machine to remote server</li>
+    <li><a href="https://www.digitalocean.com/community/tutorials/how-to-build-and-install-go-programs"><code>go build</code></a> on the server, to create an executable binary from my source code</li>
+    <li><a href=""><code>sudo setcap 'cap_net_bind_service=+ep' wombat</code></a> on the server, to allow my executable to listen on port 80 and 443</li>
+    <li>???</li>
+    <li>Run the executable forever - this is intentionally vague, because this process is non-trivial and deserves it's own article.</li>
+</ol>
+
+<p>
+    You can see that the commands are long and hard to remember. That's why I create short scripts. They are written in a <a href="https://www.gnu.org/software/bash/">language called bash</a>. The mental model that should be enough for now is that bash is the same as your terminal. You can save a command or series of commands inside a file (usually with <code>.sh</code> extension).
+</p>
+    For our synchronization script, let's name the file <code>sync.sh</code> and put the following rsync call inside.
+</p>
+<code><pre>
+rsync -azP . &lt;replace_with_your_server_address&gt;:/home/debian/wombat/
+</pre></code>
+<p>
+    The <code>-azP</code> flags mean the following things, according to <a href="https://linux.die.net/man/1/rsync">the documentation</a> (see "Options Summary" paragraph):
+</p>
+<ol>
+    <li><code>a</code> - archive mode; equals -rlptgoD (no -H,-A,-X)</li>
+    <li><ol>
+        <li><code>r</code> - recurse into directories</li>
+        <li><code>l</code> - copy symlinks as symlinks</li>
+        <li><code>p</code> - preserve permissions</li>
+        <li><code>t</code> - preserve modification times</li>
+        <li><code>g</code> - preserve group</li>
+        <li><code>o</code> - preserve owner (super-user only)</li>
+        <li><code>D</code> - same as --devices <q>(preserve device files (super-user only)</q> --specials <q>(preserve special files)</q></li>
+    </ol></li>
+    <li><code>z</code> - compress file data during the transfer</li>
+    <li><code>P</code> - same as --partial <q>(keep partially transferred files)</q> --progress <q>(show progress during transfer)</q></li>
+</ol></li>
+<p>
+    We now have to make the script file executable, so that we can use <code>./sync.sh</code> instead of <code>bash sync.sh</code>. Use <code>chmod +x sync.sh</code> to do that. Explanation of what happens exactly is nicely summarized in <a href="https://askubuntu.com/questions/443789/what-does-chmod-x-filename-do-and-how-do-i-use-it">this askubuntu post</a>. I have added <code>sync.sh</code> to <code>.gitignore</code> to avoid accidental queries to my server.
+</p>
+<p>
+    Now we can synchronize our development version and production version by running <code>./sync.sh</code> command on local machine.
+</p>
+
+<h2>Server-side build scripts</h2>
+<p>
+    If you remember complex compilation of C++ which was "simplified" by <a href="https://www.tutorialspoint.com/makefile/why_makefile.htm">introducing makefiles</a>, the idea of writing a build script may scare you. With go it's not much harder than the previous synchronization script. Let's create a file called <code>build.sh</code>. Because we already have a synchronization script, you can write and test the build script on your local machine and transfer it to production  server later.
+</p>
+<pre><code>
+go build -o wombat
+sudo setcap 'cap_net_bind_service=+ep' wombat
+</code></pre>
+<p>
+    First line <a href="https://pkg.go.dev/cmd/go#hdr-Compile_packages_and_dependencies">builds the go executable</a>.
+</p>
+<p>
+    Once the executable is built, the second line gives <code>wombat</code> binary permissions to listen on ports <code>80</code> and <code>443</code>.
+</p>
+
+<h2>Executing the pipeline</h2>
+<p>
+    Now I <code>./sync.sh</code> from my local machine. Everything should be there, so once I <a href="https://www.digitalocean.com/community/tutorials/ssh-essentials-working-with-ssh-servers-clients-and-keys">connect using ssh</a> and go to <code>/home/debian/wombat/</code> folder using <code>cd /home/debian/wombat/</code>, I can <code>ls</code> to see my files and folders.
+</p>
+<code><pre>
+debian@vps-2c542d10:~/wombat$ ls
+<output class="stdout">build.sh  go.mod  go.sum  LICENSE  main.go  README.md  sync.sh</output>
+</pre></code>
+<p>
+    All our code is now located on the server. Using <code>./build.sh</code> you can execute our build script. Now I can run my program with <code>./wombat</code> and visit <code>146.59.94.225/preface</code> in my browser to see my preface article.
+</p>
+<p>
+    The only problem now is that we cannot leave our application running when disconnecting our terminal from the server. But this is something we will investigate in the next episode.
+</p>
+<p>
+    TODO: CONFIG SHOULD BE HERE TO JUMP BETWEEN PORTS 8080 AND 80/443
+</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h2>Domain redirection</h2>
+<p>
+    Add an <code>A</code> record pointing to your domain. Information about DNS editing available here: <a href="https://docs.ovh.com/pl/domains/hosting_www_jak_edytowac_strefe_dns/">OVH tutorial</a> TODO: Add English version.
+</p>
+<p>
+    If you go to your website now (in my case <a href="http://www.daliga.pl/preface">http://www.daliga.pl/preface</a>), you should see a message saying "&lt;your_ip_address&gt; refused to connect.". In my case that's "146.59.94.225 refused to connect.".
+
+    TODO SCREENSHOT
+
+    This means the redirect works as expected. If you now run your website and refresh the browser, you should see the content of your website.
+
+    TODO THE SECOND SCREENSHOT
+</p>
+
+
+
+
+
+
+
+
+
+<h2>Daemonizing our deployment</h2>
+<p>
+    We are now faced with a dillema - what to do to make sure our application continues to run after we power off our computer? The answer is - make the application a daemon. <a href="https://itsfoss.com/linux-daemons/">A daemon is an application running in the background that doesn't need an interactive terminal to operate</a>. Which is exactly our requirement. For the process, I will use <a href="https://www.digitalocean.com/community/tutorials/how-to-configure-a-linux-service-to-start-automatically-after-a-crash-or-reboot-part-1-practical-examples">a great tutorial created by DigitalOcean</a> to understand the daemonization process. After reading the tutorial, I decided to experinment on my own with the knowledge I have received.
+</p>
+<p>
+    For starters, I have skimmed the entire article, because I had no prior knowledge on the topic. It gave me a grasp on system startup routines that made me feel comfortable enough to expirement on my machine - worst case scenario I will just reinstall my Ubuntu. So then I went over to "Practical Example: Understanding the systemd Startup Sequence" paragraph, to investigate if it contains any tips on how to set my service to run on boot.
+</p>
+<p>
+    My guess after reading the last paragraph is that I have to add a wombat.service file to /etc/systemd and this could maybe work. I still needed to find the file format documentation to understand what the example values mean, so I did <a href="https://www.google.com/search?q=systemd+unit+configuration&sxsrf=ALiCzsafLqOe7OSGKzgp4yT5KnGiXNq1Qg%3A1657289130340&ei=qjnIYsecFNqG9u8PrKqU8AQ&ved=0ahUKEwjHmZ2Pu-n4AhVag_0HHSwVBU4Q4dUDCA4&uact=5&oq=systemd+unit+configuration&gs_lcp=Cgdnd3Mtd2l6EAMyBQgAEMsBMgUIABDLATIGCAAQHhAWMgYIABAeEBYyBggAEB4QFjIGCAAQHhAWMgYIABAeEBYyBggAEB4QFjIGCAAQHhAWMgYIABAeEBY6BwgAEEcQsAM6BwgAELADEEM6CggAEOQCELADGAE6BQgAEIAESgQIQRgASgQIRhgBUNEdWIIrYM4saAFwAXgBgAGTAYgBgQ2SAQQxNC40mAEAoAEByAEOwAEB2gEGCAEQARgJ&sclient=gws-wiz">a google search again</a> to find <a href="https://manpages.ubuntu.com/manpages/xenial/en/man5/systemd.unit.5.html">the documentation for systemd.unit</a>. First of all, in section "UNIT FILE LOAD PATH" I have found that I should probably put my configuration file under /etc/systemd/user. From "[UNIT] SECTION OPTIONS" I have found the explanation for field values from the example files. It didn't contain the [Service] part though, which I had a feeling is important. So I did <a href="https://www.google.com/search?q=systemd+service+type&oq=systemd+service+type&aqs=chrome..69i57j0i512l8j0i390.2313j0j7&sourceid=chrome&ie=UTF-8">one more google search</a> which lead me to <a href="https://www.redhat.com/sysadmin/systemd-oneshot-service">this article</a> that contained reference to <a href="https://www.man7.org/linux/man-pages/man5/systemd.service.5.html">the manual</a>. I have searched (ctrl+f) in the document for "oneshot", because it seems like quite a unique name. And there I have it - OPTIONS with possible Service options.
+</p>
+<p>
+    My initial attempt at creating a systemd file is documented below. Location: /etc/systemd/user/wombat.service.
+</p>
+<pre>
+[Unit]
+Description=Wombat HTTP API (daliga.pl)
+
+[Service]
+Type=simple
+ExecStart=/home/debian/wombat/wombat
+Restart=always
+
+[Install]
+WantedBy=default.target
+</pre>
+<p>
+    Let's see if it works!
+</p>
+<pre>
+$ sudo systemctl daemon-reload
+</pre>
+<p>
+    It doesn't.
+</p>
+
+<h3>Sidenote: importance of stupid names</h3>
+<p>
+    The problem words and languages are solving is conveying complex ideas efficiently. Because of this, feel free to create your own meanings to words unknown to the IT community. Calling my service "wombat" and using it as the name of binaries allows me to execute commands like "systemctl list-units --all | grep 'wombat'" (this is what I did to check if my service is already registered) relatively certain that if I get a positive it'll be from my service. Don't use words that may be occupied by other services, such as "service" or "website". You can choose flowers, animals, food items, what have you. Don't spend too much time on this decision. If you decide to sell your idea you can rebrand and if you decide to go open source stupid names are already commonplace:
+</p>
+<ul>
+    <li>
+        <q cite="https://en.wikipedia.org/wiki/Kubernetes#History">Kubernetes (κυβερνήτης, Greek for "helmsman," "pilot," or "governor", and the etymological root of cybernetics)[5] was announced by Google in mid-2014.</q>
+    </li>
+    <li>
+        <q cite="https://en.wikipedia.org/wiki/Apache_HTTP_Server#Name">According to The Apache Software Foundation, its name was chosen "from respect for the various Native American nations collectively referred to as Apache, well-known for their superior skills in warfare strategy and their inexhaustible endurance",[15] in a context in which it seemed the thereunto open internet, based on free exchange of open source code, appeared to be soon likely subjected to a kind of conquer by proprietary software vendor Microsoft, Behlendorf seeing his effort somewhat romantically to parallel that of Geronimo, Chief of the last of the free Apache peoples.[16][17] But it conceded that the name "also makes a cute pun on 'a patchy web server'—a server made from a series of patches".</q>
+    </li>
+    <li>
+        <q cite="https://en.wikipedia.org/wiki/TOML">The name "TOML" is an acronym for "Tom's Obvious, Minimal Language"[5] referring to its creator, Tom Preston-Werner.</q>
+    </li>
+</ul>
+<p>
+    Tangent: this is where I get severely demotivated. I just try to "power through" the moments of doubt in the validity of my current endevour.
+</p>
+<p>
+    Another <a href="https://www.google.com/search?q=adding+service+to+systemd&oq=adding+service+to+systemd&aqs=chrome..69i57j0i22i30l7j0i390.4097j0j7&sourceid=chrome&ie=UTF-8">google search</a>, another <a href="https://medium.com/@benmorel/creating-a-linux-service-with-systemd-611b5c8b91d6">article to read</a>. This article suggests that I put my .service file in "/etc/systemd/system/". Let's update the file according to the article and try again!
+</p>
+
+<pre>
+[Unit]
+Description=Wombat HTTP API (daliga.pl)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/debian/wombat/wombat
+User=debian
+Restart=always
+
+[Install]
+WantedBy=default.target
+</pre>
+<p>
+    <code>sudo systemctl start wombat</code> didn't return anything. Maybe it's good?
+            
+<pre>
+debian@vps-2c542d10:/etc/systemd/system$ sudo systemctl list-units | grep 'wombat'
+  wombat.service                                                                               loaded active running   Wombat HTTP API (daliga.pl)
+</pre>
+<p>
+    We made it!
+</p>
+<p>
+    At this point, there is one more problem - the page doesn't respond and I don't know why. I have checked that the problem is response being empty, not server not responding (through Network tab in Chrome). I have an instinct that maybe we need to change the path to absolute rather than relative (TODO: DIFFERENCE BETWEEN THEM). After changing the codebase, I have found that my service doesn't want to start. I tried to start in manually and got a familiar response:
+</p>
+<pre>
+debian@vps-2c542d10:~/wombat$ ./wombat 
+panic: listen tcp :80: bind: permission denied
+</pre>
+<p>
+    This is the right moment to "automate" our build process that currently has two steps - build the file, give that file permissions to bind to port 80.
+</p>
+
+<h2>Makefiles, alternatives, why bother?</h2>
+<p>
+    I have made another <a href="https://www.google.com/search?q=makefile&oq=makefile&aqs=chrome..69i57j0i67l6j0i512l3.1024j0j7&sourceid=chrome&ie=UTF-8">archeological pursuit</a> to find this article and <a href="https://opensource.com/article/18/8/what-how-makefile">English</a> and this one in <a href="https://cpp-polska.pl/post/potwor-przeszlosci-makefile-cz-1">Polish</a>. I mention the Polish article specifically, because it's titled "Makefile - monster from the past, part 1". We will check out more modern solutions soon.
+</p>
+<p>
+    Seems like both articles agree that it's too complex, so instead I will create a simple build script. I'll call it "build.sh", and it will do the two things we want it to - create an executable binary and give it permissions to bind to port 80.
+</p>
+<pre>
+go build
+sudo setcap 'cap_net_bind_service=+ep' wombat
+</pre>
+<p>
+    Now we can "chmod +x build.sh" so that we can use "./build.sh" instead of "bash build.sh". It's purely to type less characters, because it adds up over months of working on a product.
+</p>
+<p>
+    So now I can start my application from console using "./wombat" and check what happens once I open the browser.
+</p>
+<pre>
+2022/07/09 12:32:20 http: panic serving MY_IP_HERE: open /home/debian/wombat_blog/01_preface.html: no such file or directory
+goroutine 6 [running]:
+net/http.(*conn).serve.func1()
+	/usr/local/go/src/net/http/server.go:1825 +0xbf
+panic({0x64f660, 0xc000075110})
+	/usr/local/go/src/runtime/panic.go:844 +0x258
+main.handlerCreator.func1({0x6f6050, 0xc0000d00e0}, 0xc000077420?)
+	/home/debian/wombat/main.go:27 +0x6a
+net/http.HandlerFunc.ServeHTTP(0x647b00?, {0x6f6050?, 0xc0000d00e0?}, 0xc0000161e4?)
+	/usr/local/go/src/net/http/server.go:2084 +0x2f
+github.com/go-chi/chi/v5.(*Mux).routeHTTP(0xc0000562a0, {0x6f6050, 0xc0000d00e0}, 0xc0000ec100)
+	/home/debian/go/pkg/mod/github.com/go-chi/chi/v5@v5.0.7/mux.go:442 +0x216
+net/http.HandlerFunc.ServeHTTP(0x6f6200?, {0x6f6050?, 0xc0000d00e0?}, 0x854e60?)
+	/usr/local/go/src/net/http/server.go:2084 +0x2f
+github.com/go-chi/chi/v5.(*Mux).ServeHTTP(0xc0000562a0, {0x6f6050, 0xc0000d00e0}, 0xc0000ec000)
+	/home/debian/go/pkg/mod/github.com/go-chi/chi/v5@v5.0.7/mux.go:88 +0x442
+net/http.serverHandler.ServeHTTP({0xc000074fc0?}, {0x6f6050, 0xc0000d00e0}, 0xc0000ec000)
+	/usr/local/go/src/net/http/server.go:2916 +0x43b
+net/http.(*conn).serve(0xc000082be0, {0x6f62a8, 0xc000074ed0})
+	/usr/local/go/src/net/http/server.go:1966 +0x5d7
+created by net/http.(*Server).Serve
+	/usr/local/go/src/net/http/server.go:3071 +0x4db
+</pre>
+<p>
+    The actual error message is just "open /home/debian/wombat_blog/01_preface.html: no such file or directory". I have clearly missed a "/" in the path.
+</p>
+<p>
+    After changing the path, the page loads properly. Now I will try running the daemon again and refresh the page to confirm everything works.
+</p>
+<pre>
+debian@vps-2c542d10:~/wombat$ sudo systemctl start wombat
+debian@vps-2c542d10:~/wombat$ sudo systemctl list-units | grep 'wombat'
+  wombat.service                                                                               loaded active running   Wombat HTTP API (daliga.pl)
+</pre>
+<p>
+    IT WORKS! So now we have our deployment working and serving potential millions of customers. Fantastic. Next up, we will secure the connection and start working on the actual product rather than operational maintenance.
+</p>

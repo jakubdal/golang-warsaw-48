@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>daliga.pl</title>
+    </head>
+    <body>
+        <div id="container">
+            <div id="header">
+                <a href="/"><span id="author">Kuba Daliga</span></a>
+            </div>
+            <div id="content">
+                <h1>When to use third party packages?</h1>
+                <h2>Introducing - Chi, the HTTP router I will be using</h2>
+                <p>
+                    Your initial question should always be - "can I solve this problem using standard library". This is because of incidents like <a href="https://qz.com/646467/how-one-programmer-broke-the-internet-by-deleting-a-tiny-piece-of-code/">deleting an open-source library left-pad breaking the internet</a> or <a href="https://www.wired.com/story/developer-altered-open-source-software-to-wipe-files-in-russia/">malicious updates deleting files</a>.
+                </p>
+                <p>
+                    To create most websites, I usually use several features that are not supported by the standard library:
+                </p>
+                <ul>
+                    <li><a href="https://github.com/go-chi/chi/blob/master/_examples/custom-method/main.go">Handling HTTP methods (GET/POST/PUT/DELETE)</a></li>
+                    <li><a href="https://github.com/go-chi/chi/blob/master/_examples/rest/main.go">Access to path parameters</a></li>
+                </ul>
+                <p>
+                    We could of course write those functionalities on top of the default <code>http</code> library, but we could also review a package version once and use it in our future projects. If we don't care about safety or security for now - we can even use a package without audit and just trust the authors. What I care about is to be able to migrate to another framework if needed and this is why I chose Chi - because it supports the functionalities I need and uses standard handler interfaces that should allow interoperability later.
+                </p>
+                
+                <h3>The <code>left-pad</code> scandal</h3>
+                <p>
+                    I remember experiencing this situation myself some time ago. While I fundamentally disagree with the <code>kik</code> repository creator, I also accept that his intellectual property in form of written libraries is his to manage. The only thing I can say is that big companies having trouble because of this incident should be ashamed of themself and their engineering quality. If you want to enforce your intellectual property rights, you have to respect those of others. You cannot say it's moral to steal code of one author and defend the <code>kik</code> trademark in the same breath, because they are essentially the same case. The only difference being one rights holder is a person and another is a corporation.
+                </p>
+                <p>
+                    Good job on proving that <code>left-pad</code> package author's asshole stance on <code>kik</code> trademark was right all along and you are nothing but thieves stealing their work when it suits you, because they cannot pursue legal action.
+                </p>
+                
+                <h3>Hacking the Russians</h3>
+                <p>
+                    I would qualify myself as a pacifist. I see using force to enforce your will to be a bully tactic, worthy of less civilized times. It is the last resort, that should be limited to situations which cannot be resolved in any other way. An example of that could be disarming a person trying to harm other people. A counter-example would be to instill either democracy or imperalism onto other countries. So situations in which someone is protesting those actions are usually commendable. That is, if they bring more good to the world, which the quoted article contests.
+                </p>
+                <blockquote cite="https://www.wired.com/story/developer-altered-open-source-software-to-wipe-files-in-russia/">
+                    The new malicious code release, wrote one person claiming to work for a US-based organization that operated a server in Belarus, “resulted in executing your code and wiping over 30,000 messages and files detailing war crimes committed in Ukraine by Russian army and government officials.”
+                </blockquote>
+                <p>
+                    This means nothing. Their procedures and code were vulnerable from the beginning. The update was clearly made to help Ukraine defending against Russian aggression. If this is what took down the documentation of human abuse "by accident", imagine what would happen if package maintainer was on the other side of the conflict.
+                </p>
+                <p>
+                    If your organization does not mirror the dependencies, audit all of them and require audit of any new package to be incorporated, your data is not safe by default. And this mistake is on you, not the open source package maintainer. It's even in most licenses, good luck with the lawsuit.
+                </p>
+                
+                <h2>What are the alternatives?</h2>
+                <p>
+                    The alternatives don't really matter to me, because there are only two things I worry about in an HTTP router - feature set and performance. I get all the features I know I do want from <code>chi</code>. Performance-wise, http routing won't be the bottleneck 99.99% of the time. So don't worry about the benchmarks. If you hit the limit of the framework, you'll know it. And it's good to learn what the limit is and what it looks like, but it shouldn't be your first concern.
+                </p>
+                <p>
+                    I have checked a couple competitors just to be able to write this paragraph and potentially learn something new about the Go environment. Here is the outcome of my research (you can skip the rest of this paragraph, no need to research the packages yourself for now).
+                </p>
+                <h3><a href="https://github.com/labstack/echo">echo</a></h3>
+                <p>
+                    Seems to support basic functionalities but requires custom interface. Creator doesn't boast about any special features.
+                </p>
+                <h3><a href="https://github.com/kataras/iris">iris</a></h3>
+                <p>
+                    Seems to support basic functionalities but requires custom interface. Creator doesn't boast about any special features.
+                </p>
+                <h3><a href="https://github.com/gofiber/fiber">Fiber</a></h3>
+                <p>
+                    Seems to support basic functionalities but requires custom interface. Creator doesn't boast about any special features.
+                </p>
+                <h3><a href="https://revel.github.io/">Revel</a></h3>
+                <p>
+                    This is the big one. It's not an HTTP router, but a framework for building standarized apps that you need to learn before using. Overkill for my usecase and a waste of time (I won't be mass-producing similar websites, I'm not a software house).
+                </p>
+                <p>
+                    Revel also encourages some things that I cannot stand behind for teaching purposes - like using the <code>init()</code> function, <a href="https://revel.github.io/examples/booking.html">requiring a lot of manual labor for validating request fields</a> or <a href="https://revel.github.io/examples/chat.html">using global variables for managing program state</a>.
+                </p>
+                
+                <h2>Using Chi</h2>
+                <p>
+                    In your project folder, execute <code>go mod init github.com/&lt;your_username&gt;/&lt;your_project_name&gt; in the console. This will initialize <code>go modules</code>. You can read more about creating modules <a href="https://go.dev/doc/tutorial/create-module">from the official go documentation</a>. You can also check the longer tutorial <a href="https://go.dev/blog/using-go-modules">about using advanced go modules features</a> including versioning, publishing your own library and migrating legacy systems. All of those advanced topics are not required yet.
+                </p>
+                <p>
+                    Next up, download Chi using the <code>go get github.com/go-chi/chi/v5</code> command to download the newest minor version of Chi v5. Read about versioning and why we care about v5 but not about the minor version <a href="https://semver.org/">on the semver.org website</a>.
+                </p>
+                <p>
+                    If you have downloaded v1 by using <code>go get github.com/go-chi/chi</code> you didn't break anything. This only adds the v1 version which we will ignore in our code and which our program will clear out from dependencies later. I have made this mistake myself, so you can see how it affects our project files.
+                </p>
+                <p>
+                    At this point, you will notice that your <code>go.mod</code> file has changed and <code>go.sum</code> has been created. The content of my <code>go.mod</code> looks as follows and shows the dependencies my project has. Dependencies are just libraries we are using and including into our final binary code during compilation.
+                </p>
+                
+                <pre>
+                module github.com/jakubdal/wombat
+                
+                go 1.18
+                
+                require (
+                    github.com/go-chi/chi v1.5.4 // indirect
+                    github.com/go-chi/chi/v5 v5.0.7 // indirect
+                )
+                </pre>
+                <p>
+                    Now we can use the dependencies in our code. See my updated <code>main.go</code> file, displaying file content below:
+                </p>
+                <pre>
+                    package main
+                
+                    import (
+                        "net/http"
+                        "os"
+                
+                        "github.com/go-chi/chi/v5"
+                    )
+                
+                    func main() {
+                        router := chi.NewRouter()
+                
+                        prefaceHandler := handlerCreator("_blog/01_preface.html")
+                        router.Get("/preface", prefaceHandler)
+                        staticfileServerHandler := handlerCreator("_blog/02_staticfile_server.html")
+                        router.Get("/staticfile_server", staticfileServerHandler)
+                        err := http.ListenAndServe(":8080", router)
+                        if err != nil {
+                            panic(err)
+                        }
+                    }
+                
+                    func handlerCreator(filepath string) http.HandlerFunc {
+                        return func(w http.ResponseWriter, r *http.Request) {
+                            content, err := os.ReadFile(filepath)
+                            if err != nil {
+                                panic(err)
+                            }
+                            w.Write(content)
+                        }
+                    }
+                </pre>
+                <p>
+                    Please note how similar this is to our code from the previous episode (only 4 lines have changed). If you now run <code>go mod tidy</code>, it will check the dependencies again, and notice that:
+                </p>
+                <ul>
+                    <li><code>chi v1.5.4</code> is not used (even indirectly) so the record will be removed from our dependencies list</li>
+                    <li><code>chi v5.0.7</code> is used directly in our project in <code>main.go</code>, so the <code>// indirect</code> comment got removed</li>
+                </ul>
+                <p>
+                    The same rule works for all other dependencies and all of your future projects. The <code>// indirect</code> dependency will stay in your <code>go.mod</code> file if your dependency has a dependency.
+                </p>
+                            </div>
+        </div>
+    </body>
+</html>

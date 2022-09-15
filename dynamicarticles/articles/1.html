@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>daliga.pl</title>
+    </head>
+    <body>
+        <div id="container">
+            <div id="header">
+                <a href="/"><span id="author">Kuba Daliga</span></a>
+            </div>
+            <div id="content">
+                <h1>Try writing a website by hand</h1> 
+                <h2>Why write another beginner tutorial?</h2>
+                <p>
+                    Because I like teaching and I need a creative outlet for products that are not feasible in a professional environment, but I think would be fun to create or use.
+                </p>
+                <p>
+                    Because most tutorials cover a well-structured learning path, that I think should not exist "in professional setting".
+                </p>
+                <p>
+                    Because I believe programming is about discovery, not about recreating once-learned patterns.
+                </p>
+                <p>
+                    Last but not least, because I want to become a better writer, so I need a topic to write on and people who may give me feedback.
+                </p>
+                
+                <h2>Fellow beginner tutorial reviews</h2>
+                <p>
+                    I felt it would only be fair if I left my article-review here, for any reader that may have prior experience with tutorials, to show you what I care about when writing my own. If you just want to learn programming, you may skip this paragraph.
+                </p>
+                <ol>
+                    <li><a href="https://blog.scottlogic.com/2017/04/19/go-services.html">blog.scottlogic.com - Creating Simple Web Services in Go</a></li>
+                    <ul>
+                        <li>The application cannot be run anywhere and do anything really, it's just an excercise.</li>
+                        <li><code>func Remove(id int) bool</code> is buggy, because it makes assumptions about system state that were not specified anywhere.</li>
+                        <li>The implementation of <code>HandleRequest</code> is not even lazy programming, because it's too creative.</li>
+                        <li>Blank lines between all significant lines of code is in my opinion not a good habit to get as a beginner.</li>
+                        <li>Errors are not handled at all or are handled incorrectly - sometimes return error values get shadowed and/or ignored.</li>
+                        <li>No followup after implementing the in-memory app.</li>
+                    </ul>
+                    <li><a href="https://smartbear.com/blog/how-to-build-a-web-service-in-5-minutes-with-go/">smartbear.com - How to build a web service in 5 minutes with go</a>
+                    <ul>
+                        <li>Writing function stubs first and then trying to fill them in is a mistake in my book, because it forces your focus away from what you are doing and into what artificial mold you are trying to push yourself into. And how are you supposed to know what artificial mold you should even try to fit yourself into when writing your own project?</li>
+                        <li>The article is very opinionated, but there is no backing for author's opinions.</li>
+                        <li>Leaving a newbie three frameworks to choose from without explanation how they should chose is in my opinion very confusing.</li>
+                        <li><q>Here is what the API looks like:</q> is a huge red flag in my opinion, because usually you need to figure out what the API looks like and it's the most difficult part of programming.</li>
+                        <li>The <code>type WebService interface</code> is a really weird place to showcase interfaces, because this interface makes no sense - it adds a lot of boilerplate HTTP request handling, that is very framework-specific in chosen library and would require full refactor when changing said library anyways.</li>
+                        <li><q>// Make sure Body is closed when we are done.</q> - sure, but why?</li>
+                        <li>Again, no followup.</li>
+                    </ul>
+                    <li><a href="https://go.dev/doc/tutorial/web-service-gin">go.dev - Tutorial: Developing a RESTful API with Go and Gin</a></li>
+                    <ul>
+                        <li>Very clean tutorial with each step described in much more details than I plan to.</li>
+                        <li>Explains how to achieve an objective, but not how to create such objective for yourself or break big objective into smaller tasks.</li>
+                        <li>I would say it's a very good tutorial for people who already know programming and want to start using Go now.</li>
+                    </ul>
+                    <li><a href="https://www.honeybadger.io/blog/go-web-services/">honeybadger.io - A Gentle Introduction to Web Services With Go</a></li>
+                    <ul>
+                        <li>Good, thorough introduction to standard library HTTP handling.</li>
+                        <li>Seems to be aimed towards seasoned programmers.</li>
+                        <li>No followup, no actual project built.</li>
+                    </ul>
+                    <li><a href="https://go.dev/doc/articles/wiki/">go.dev - Writing Web Applications</a></li>
+                    <ul>
+                        <li>Very good tutorial, the only thing I'm missing is a follow-up walthrough showcasing how to start building an actual product.</li>
+                    </ul>
+                    <li><a href="https://medium.com/@anilvedala/setting-up-a-web-service-in-go-4f35e77d0b25">medium.com/@anilvedala - Setting up a web service in Go</a></li>
+                    <ul>
+                        <li>Code formatting is off.</li>
+                        <li>Again, third-party packages with no choice justification.</li>
+                        <li>Very short, shows only the basics</li>
+                    </ul>
+                </ol>
+                
+                <h2>My vision, mission and values?</h2>
+                <p>
+                   There is a thing that's "hidden" from most casual users - namely the trifecta of <a href="https://alessiobresciani.com/foresight-strategy/51-mission-statement-examples-from-the-worlds-best-companies/">mission</a>, <a href="https://www.clearvoice.com/blog/difference-between-mission-vision-statement-examples/">vision</a> and <a href="https://www.achievers.com/blog/company-core-value-examples/">core values</a>. While this is usually just a bunch of buzzwords for big organizations, it's important to recognize the idea behind this mental excercise. Imagine, that you are bringing a new person to your team and you don't want to babysit them 100% of their working time - how can you quickly teach them what principles should guide their decisions at work? That's right, those three statements.
+                </p>
+                <p>
+                    Because I am a single-person organization right now, my goal in defining those statements is to stay on track of my initial goals when new ideas ineavitable come to my mind and my motivation gets redirected into another venture.
+                </p>
+                <h3>Vision Statement</h3>
+                <p>
+                    Make the internet faster, safer and easier to understand for not-yet-engineers.
+                </p>
+                <h3>Mission Statement</h3>
+                <p>
+                    Produce software that I would like to use, with codebase that can be read and understood by programming newcommers.
+                </p>
+                <h3>Values</h3>
+                <ul>
+                    <li><a href="https://en.wikipedia.org/wiki/Golden_Rule">The Golden Rule</a> - create articles that I would find interesting, create products that I would find useful</li>
+                    <li>Transparency - make my failures visible for others, to reassure everyone that failing is an expected and unavoidable part of doing anything.</li>
+                    <li>Understandability - try my best to communicate in an understandable way, accepting that understandability is more important than performance</li>
+                    <li>Working on sources - whenever possible, use third-party sources and examples. Avoid making claims without a confirmation that they appear in the real world.</li>
+                    <li>Quality over quantity - writing a lot of content is quick and easy. Writing good content is hard and slow. Accept the pace. There is enough content existing already.</li>
+                    <li>Money will follow - this is a hobby project. If money ever happens to come my way from it, it should be a bonus, not a core focus. Focusing on monetization should be considered a waste of time as often as possible.</li>
+                </ul>
+                <p>
+                    If at any point you notice my content derives from those, please let me know so I can decide if I should change my words or my actions.
+                </p>
+                
+                <h2>Inspiration and battle plan</h2>
+                <p>
+                    When I was starting to get interested in programming, the internet was very young. Compatibility issues with Internet Explorer 6 were the focus of most HTML / CSS tutorials. Go didn't exist and most webpages were created in PHP, with JavaScript used exclusively to add interactivity to websites.
+                </p>
+                <p>
+                    My "aha" moment happened, when I registered on an online forum created by my online friend. After registering, said friend has sent me my password in clear text and asked me if it looks familiar. I remember the sheer panic that overloaded my body then and there. But it also made me realize, that he has to have access to whatever is holding the password information and he must be able to read it.
+                </p>
+                <p>
+                    The websites people use now are usually giant social media platforms or centralized entertainment platforms. Dead are the small forums, the fan-made websites in plain HTML. There are wiki scripts, WordPress plugins and Facebook groups. As a side effect, this has left the new generation of software engineers without a starting point. Because once you finish the beginner tutorial and create a TODO list, where to go next? How to broaden your horizons? How to jump from "I understand things written in given programming language" to "I have created this product on my own and I can create one for you (possibly only if you pay me)"?
+                </p>
+                <p>
+                    This tutorial aims to close this knowledge gap.
+                </p>
+                
+                <h2>What is the expected end result?</h2>
+                <p>
+                    I would like to recreate services that I have used in my youth, that didn't need an army of engineers back then, and I don't expect them to need an army now. I would like to showcase how they used to work and how they can be recreated today, using the simplest tech stack possible.
+                </p>
+                <p>
+                    The beginning is this blog. If this is the first post you see, I am most likely still working on it. Come on, have a look!
+                </p>
+                
+                <h2>I'm ready, where do I start?</h2>
+                <p>
+                    If you have absolutely no prior experience with any or some of the technologies used, here is a list of reasonably-long articles that you need to read to understand the basics:
+                </p>
+                <ul>
+                    <li>
+                        <a href="https://go.dev/tour/welcome/1">A Tour of Go</a> - Go is the language I will use on the server side.
+                    </li>
+                    <li>
+                        <a href="https://www.w3schools.com/html/html_basic.asp">HTML Basic</a> - just this one article. After that you can open <a href="TODO - PERMALINK TO THIS HTML">_blog/01_preface.html<code> to see the HTML content of this page. I wrote it manually, line after line, tag after tag. The longest part was writing the actual text content. Adding the HTML tags was very quick and simple in comparison, so I believe you can read and understand it if you try!
+                    </li>
+                </ul>
+                <p>
+                    I will provide an introduction / primer knowledge for each new technology as they get introduced in upcoming projects.
+                </p>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
